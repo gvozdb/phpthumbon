@@ -352,8 +352,10 @@ class phpThumbOn
             $full_assets = $this->_config['assetsPath'];
             $assets = ltrim($this->_config['assetsUrl'], '/');
             $imgDir = $this->_config['imagesFolder'];
+            
+            $mbp = str_replace('\\', '\\\\', MODX_BASE_PATH);
 
-            $this->_config['relativePath'] = preg_replace("#^({$full_assets}|(/)?{$assets})(/)?{$imgDir}(/)?|" . MODX_BASE_PATH . "#", '',
+            $this->_config['relativePath'] = preg_replace("#^({$full_assets}|(/)?{$assets})(/)?{$imgDir}(/)?|" . $mbp . "#", '',
                 $this->_pathinfo('dirname'));
         } else {
             if ($this->_flag = file_exists($this->_config['noimage'])) {
