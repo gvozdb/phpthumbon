@@ -24,6 +24,8 @@ class phpThumbOn
     private $_cfg = array();
     /** @var array кеш со */
     private $_cacheDir = array();
+    /** @var bool MODX version */
+    private $isMODX3;
     /** @var array все настройки класса */
     public $_config = array();
     /** @var null|modSnippet Сниппет для подготовки имени файла превьюхи */
@@ -74,6 +76,8 @@ class phpThumbOn
     public function __construct(modX $modx, array $config = array())
     {
         $this->modx = &$modx;
+
+        $this->isMODX3 = $this->modx->getVersionData()['version'] >= 3;
 
         $corePath = $this->modx->getOption('phpthumbon.core_path', array(), $this->modx->getOption('core_path') . 'components/phpthumbon/');
         $assetsPath = $this->modx->getOption('assets_path');
@@ -152,14 +156,26 @@ class phpThumbOn
     {
         $out = false;
         $new = true;
-        if (!$this->modx->loadClass('modphpthumb', $this->modx->getOption('core_path') . 'model/phpthumb/', true, true)) {
-            if (!$this->modx->loadClass('modphpthumb', $this->modx->getOption('core_path') . 'model/modx/', true, true)) {
+
+        if ($this->isMODX3) {
+            if (!$this->modx->getService('phpthumb', '\MODX\Revolution\modPhpThumb')) {
                 $this->modx->log(modX::LOG_LEVEL_ERROR, '[phpthumbon] Could not load phpthumb class');
                 $this->_flag = false;
             }
+        } else {
+            if (!$this->modx->loadClass('modphpthumb', $this->modx->getOption('core_path') . 'model/phpthumb/', true, true)) {
+                if (!$this->modx->loadClass('modphpthumb', $this->modx->getOption('core_path') . 'model/modx/', true, true)) {
+                    $this->modx->log(modX::LOG_LEVEL_ERROR, '[phpthumbon] Could not load phpthumb class');
+                    $this->_flag = false;
+                }
+            }
         }
         if ($this->_flag) {
-            $this->_phpThumb = new modPhpThumb($this->modx, $this->getConfig());
+            if ($this->isMODX3) {
+                $this->_phpThumb = new \MODX\Revolution\modPhpThumb($this->modx, $this->getConfig());
+            } else {
+                $this->_phpThumb = new modPhpThumb($this->modx, $this->getConfig());
+            }
             $this->_phpThumb->initialize();
             $this->_phpThumb->setSourceFilename($from);
             $this->saveOptions();
@@ -645,11 +661,15 @@ class phpThumbOn
      */
     public function makeDir($dir)
     {
+        $classPrefix = '';
+        if ($this->isMODX3) {
+            $classPrefix = '\\MODX\\Revolution\\File\\';
+        }
         $flag = true;
         if (!file_exists($dir)) {
-            $this->modx->getService('fileHandler', 'modFileHandler');
-            $dirObj = $this->modx->fileHandler->make($dir, array(), 'modDirectory');
-            if (!is_object($dirObj) || !($dirObj instanceof modDirectory)) {
+            $this->modx->getService('fileHandler', $classPrefix . 'modFileHandler');
+            $dirObj = $this->modx->fileHandler->make($dir, array(), $classPrefix . 'modDirectory');
+            if (!is_object($dirObj) || !($dirObj instanceof modDirectory || $dirObj instanceof \MODX\Revolution\File\modDirectory)) {
                 $flag = false;
                 $this->modx->log(modX::LOG_LEVEL_ERROR, '[phpthumbon] Could not get class modDirectory');
             }
