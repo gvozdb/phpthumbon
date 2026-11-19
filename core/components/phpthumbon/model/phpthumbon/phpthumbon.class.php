@@ -59,7 +59,7 @@ class phpThumbOn
                 $out = false;
             }
         } else {
-            $out = self::$_ALLOWED_EXT;
+            $out = self::$ALLOWED_EXT;
         }
 
         return $out;
